@@ -1,32 +1,45 @@
-import React from 'react';
+import React, { useReducer } from 'react';
 
 import MoviesList from './components/MoviesList';
 import './App.css';
 
-function App() {
-  const dummyMovies = [
-    {
-      id: 1,
-      title: 'Some Dummy Movie',
-      openingText: 'This is the opening text of the movie',
-      releaseDate: '2021-05-18',
-    },
-    {
-      id: 2,
-      title: 'Some Dummy Movie 2',
-      openingText: 'This is the second opening text of the movie',
-      releaseDate: '2021-05-19',
-    },
-  ];
+const handleDataDispatch = (state, action) => {
+  if (action.type === "DATA") {
+    console.log(action.movieData);
+    return { movieData: action.movieData, hasData: action.movieData.length > 0 }
+  }
+}
 
+function App() {
+  const [data, dataDispatch] = useReducer(handleDataDispatch, { movieData: [], hasData: false })
+
+  const fetchMoviesHandler = (movie) => {
+    fetch(`https://swapi.dev/api/films/${movie}`)
+      .then(res => res.json())
+      .then(data => {
+        const transformedMovies = data.results.map(movie => {
+          return {
+            id: movie.episode_id,
+            title: movie.title,
+            openingText: movie.opening_crawl,
+            releaseDate: movie.release_date
+          }
+        })
+
+        dataDispatch({ type: "DATA", movieData: transformedMovies })
+      })
+  }
+
+  console.log(data);
   return (
     <React.Fragment>
       <section>
-        <button>Fetch Movies</button>
+        <button onClick={() => fetchMoviesHandler("")}>Fetch Movies</button>
       </section>
-      <section>
-        <MoviesList movies={dummyMovies} />
-      </section>
+      {(data.hasData === true) &&
+        <section>
+          <MoviesList movies={data.movieData} />
+        </section>}
     </React.Fragment>
   );
 }

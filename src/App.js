@@ -13,21 +13,18 @@ const handleDataDispatch = (state, action) => {
 function App() {
   const [data, dataDispatch] = useReducer(handleDataDispatch, { movieData: [], hasData: false })
 
-  const fetchMoviesHandler = (movie) => {
-    fetch(`https://swapi.dev/api/films/${movie}`)
-      .then(res => res.json())
-      .then(data => {
-        const transformedMovies = data.results.map(movie => {
-          return {
-            id: movie.episode_id,
-            title: movie.title,
-            openingText: movie.opening_crawl,
-            releaseDate: movie.release_date
-          }
-        })
-
-        dataDispatch({ type: "DATA", movieData: transformedMovies })
-      })
+  const fetchMoviesHandler = async (movie) => {
+    const res = await fetch(`https://swapi.dev/api/films/${movie}`)
+    const data = await res.json()
+    const transformedMovies = data.results.map(movie => {
+      return {
+        id: movie.episode_id,
+        title: movie.title,
+        openingText: movie.opening_crawl,
+        releaseDate: movie.release_date
+      }
+    })
+    dataDispatch({ type: "DATA", movieData: transformedMovies })
   }
 
   console.log(data);

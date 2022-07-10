@@ -9,11 +9,15 @@ import { useCallback } from 'react';
 const handleDataDispatch = (state, action) => {
   if (action.type === "DATA") {
     console.log(action.movieData);
-    return { movieData: action.movieData, hasData: action.movieData.length > 0, isLoading: false, error: null }
+    return { movieData: action.movieData, hasData: action.movieData.length > 0, isLoading: false, isPosting: false, error: null }
   }
 
   if (action.type === "LOADING") {
     return { ...state, isLoading: true }
+  }
+
+  if (action.type === "SENDING") {
+    return { ...state, isPosting: true }
   }
 
   if (action.type === "RESET-ERROR") {
@@ -26,40 +30,60 @@ const handleDataDispatch = (state, action) => {
 }
 
 function App() {
-  const [data, dataDispatch] = useReducer(handleDataDispatch, { movieData: [], hasData: false, isLoading: false, error: null })
+  const [data, dataDispatch] = useReducer(handleDataDispatch, { movieData: [], hasData: false, isLoading: false, isPosting: false, error: null })
 
+  // ! GETTING DATA FROM THE API WITH "GET" HTTP REQUEST
   const fetchMoviesHandler = useCallback(async () => {
     dataDispatch({ type: "RESET-ERROR" })
     dataDispatch({ type: "LOADING" })
 
     try { // ! TRY TO EXECUTE A RISKY PIECE OF CODE
-      const res = await fetch(`https://swapi.dev/api/films/`)
-      console.log(res);
-      if (res.status === 404) { throw new Error("This endpoint doesn't exist. Double check your fetch URL and try again.") } // ! HANDLING ERROR
+      const res = await fetch("https://react-http-test-post-default-rtdb.europe-west1.firebasedatabase.app/movies.json")
+      if (!res.ok) { throw new Error("Something went wrong while getting the data") } // ! HANDLING ERROR
       const data = await res.json()
 
-      const transformedMovies = data.results.map(movie => {
-        return {
-          id: movie.episode_id,
-          title: movie.title,
-          openingText: movie.opening_crawl,
-          releaseDate: movie.release_date
-        }
-      })
-      dataDispatch({ type: "DATA", movieData: transformedMovies })
+      const loadedMovies = [];
+      for (const key in data) { //! WE MUTATE THE DATA IN A SHAPE WE CAN WORK WITH WITH
+        loadedMovies.push({
+          id: key,
+          title: data[key].title,
+          releaseDate: data[key].releaseDate,
+          openingText: data[key].openingText,
+        })
+      }
+
+      dataDispatch({ type: "DATA", movieData: loadedMovies })
     } catch (error) { // ! CATCH ERROR IF THERE IS ONE
       dataDispatch({ type: "SET-ERROR", error: error })
-      console.log(error);
+    }
+  }, [])
+
+  // ! SENDING DATA TO THE API WITH "POST" HTTP REQUEST
+  const addMovieHandler = useCallback(async (movie) => {
+    dataDispatch({ type: "RESET-ERROR" })
+    dataDispatch({ type: "SENDING" })
+
+    try {
+      const url = "https://react-http-test-post-default-rtdb.europe-west1.firebasedatabase.app/movies.json"
+      const res = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(movie),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      if (!res.ok) { throw new Error("Something went wrong while posting the data") } // ! HANDLING ERROR
+      const data = await res.json()
+      dataDispatch({ type: "DATA", movieData: data })
+      fetchMoviesHandler()
+    } catch (error) {
+      dataDispatch({ type: "SET-ERROR", error: error })
     }
   }, [])
 
   useEffect(() => {
     fetchMoviesHandler();
   }, [fetchMoviesHandler])
-
-  function addMovieHandler(movie) {
-    console.log(movie);
-  }
 
   return (
     <React.Fragment>
@@ -74,6 +98,7 @@ function App() {
         {data.isLoading && <p>Loading.. Please wait</p>}
         {!data.hasData && !data.isLoading && !data.error && <p>Found no movies</p>}
         {!data.hasData && !data.isLoading && data.error && <p><strong>AN ERROR OCCURED:</strong> <br /> {data.error.message}</p>}
+        {data.isPosting && !data.error && <p>Creating your post. Please wait..</p>}
       </section>
     </React.Fragment>
   );

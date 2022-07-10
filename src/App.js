@@ -6,16 +6,22 @@ import './App.css';
 const handleDataDispatch = (state, action) => {
   if (action.type === "DATA") {
     console.log(action.movieData);
-    return { movieData: action.movieData, hasData: action.movieData.length > 0 }
+    return { movieData: action.movieData, hasData: action.movieData.length > 0, isLoading: false }
+  }
+
+  if (action.type === "LOADING") {
+    return { ...state, isLoading: true }
   }
 }
 
 function App() {
-  const [data, dataDispatch] = useReducer(handleDataDispatch, { movieData: [], hasData: false })
+  const [data, dataDispatch] = useReducer(handleDataDispatch, { movieData: [], hasData: false, isLoading: false })
 
   const fetchMoviesHandler = async (movie) => {
+    dataDispatch({ type: "LOADING" })
     const res = await fetch(`https://swapi.dev/api/films/${movie}`)
     const data = await res.json()
+
     const transformedMovies = data.results.map(movie => {
       return {
         id: movie.episode_id,
@@ -33,10 +39,11 @@ function App() {
       <section>
         <button onClick={() => fetchMoviesHandler("")}>Fetch Movies</button>
       </section>
-      {(data.hasData === true) &&
-        <section>
-          <MoviesList movies={data.movieData} />
-        </section>}
+      <section>
+        {(data.hasData) && <MoviesList movies={data.movieData} />}
+        {(data.isLoading) && <p>Loading.. Please wait</p>}
+        { !data.hasData && !data.isLoading && <p>Found no movies</p>}
+      </section>
     </React.Fragment>
   );
 }

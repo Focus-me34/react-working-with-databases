@@ -1,7 +1,10 @@
 import React, { useReducer } from 'react';
 
 import MoviesList from './components/MoviesList';
+import AddMovie from './components/AddMovie';
 import './App.css';
+import { useEffect } from 'react';
+import { useCallback } from 'react';
 
 const handleDataDispatch = (state, action) => {
   if (action.type === "DATA") {
@@ -25,12 +28,12 @@ const handleDataDispatch = (state, action) => {
 function App() {
   const [data, dataDispatch] = useReducer(handleDataDispatch, { movieData: [], hasData: false, isLoading: false, error: null })
 
-  const fetchMoviesHandler = async (movie) => {
+  const fetchMoviesHandler = useCallback(async () => {
     dataDispatch({ type: "RESET-ERROR" })
     dataDispatch({ type: "LOADING" })
 
     try { // ! TRY TO EXECUTE A RISKY PIECE OF CODE
-      const res = await fetch(`https://swapi.dev/api/films/${movie}`)
+      const res = await fetch(`https://swapi.dev/api/films/`)
       console.log(res);
       if (res.status === 404) { throw new Error("This endpoint doesn't exist. Double check your fetch URL and try again.") } // ! HANDLING ERROR
       const data = await res.json()
@@ -48,11 +51,21 @@ function App() {
       dataDispatch({ type: "SET-ERROR", error: error })
       console.log(error);
     }
+  }, [])
+
+  useEffect(() => {
+    fetchMoviesHandler();
+  }, [fetchMoviesHandler])
+
+  function addMovieHandler(movie) {
+    console.log(movie);
   }
 
-  console.log(data);
   return (
     <React.Fragment>
+      <section>
+        <AddMovie onAddMovie={addMovieHandler}></AddMovie>
+      </section>
       <section>
         <button onClick={() => fetchMoviesHandler("")}>Fetch Movies</button>
       </section>
